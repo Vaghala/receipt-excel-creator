@@ -1,4 +1,4 @@
-import requests,openpyxl,csv,json
+import requests,openpyxl,csv,json,sqlite3
 from bs4 import BeautifulSoup
 from openpyxl.cell.cell import ILLEGAL_CHARACTERS_RE
 
@@ -25,6 +25,8 @@ def get_company_name(afm):
     payload = {"query":{"arGEMI":no_gemi},"language":"el"}
     response = requests.post(url, headers=headers,json=payload)
     j2 = json.loads(response.text)
+    if j2['message'] in 'Company not found':
+        return None
     company_name = j2['companyInfo']['payload']["company"]["name"]
     return company_name
 
@@ -52,17 +54,43 @@ def search_company_name(afm):
         suffix_gemi = rec["id"][-3:]
         if suffix_gemi in "000":
             return rec["name"]
-A=[]
+
+class Reciept:
+    def __init__(self,hmerominia,katharo_sunolo,sunolo_fpa,eidos_parastatikou,sunolo,arithmos_parastatikou,eidos_proiontos,afm,eponumia):
+        self.Date_time = hmerominia
+        self.Sum_of_net_price = katharo_sunolo
+        self.Sum_of_fpa = sunolo_fpa
+        self.R_type = eidos_parastatikou
+        self.Total = sunolo
+        self.Number = arithmos_parastatikou
+        self.type_of_goods = eidos_proiontos
+        self.Company_afm = afm
+        self.Company_Name = eponumia
+    '''
+    self.Date_time
+    self.Sum_of_net_price
+    self.Sum_of_fpa
+    self.R_type
+    self.Total
+    self.Number
+    self.type_of_goods
+    self.Company_afm
+    self.Company_Name
+    '''
+
+db = sqlite3.connect("Database.db")
+cursor = db.cursor()
+Urls =[]
 with open("codes.csv",'r',encoding='utf-8') as fl:
     doc = csv.reader(fl)
     for row in doc:
-        A.append(row[4])
+        Urls.append(row[4])
 
-A.pop(0)
-urls = A
+Urls.pop(0)
 DATA_ARRAY = []
 errors = []
-for url in urls:
+Rs = []
+for url in Urls:
     try:
         r = requests.get(url)
     except:
@@ -74,25 +102,51 @@ for url in urls:
         errors.append(url)
         continue
     tr = table.findAll('tr')
-    Dick = {}
+    DictArray = {}
     for row in tr:
         x = row.findAll('td')
         x = x[0].text , x[1].text
-        Dick[x[0]]= x[1]
+        DictArray[x[0]]= x[1]
     try:
-        sum_net = str(round(float(Dick['Καθαρή αξία Α'].replace("€ ","")) + float(Dick['Καθαρή αξία Β'].replace("€ ","")) + float(Dick['Καθαρή αξία Γ'].replace("€ ","")) + float(Dick['Καθαρή αξία Δ'].replace("€ ","")) + float(Dick['Καθαρή αξία Ε'].replace("€ ","")),2))+"€"
-        sum_fpa = str(round(float(Dick['ΦΠΑ Α'].replace("€ ","")) +float(Dick['ΦΠΑ Β'].replace("€ ","")) + float(Dick['ΦΠΑ Γ'].replace("€ ","")) + float(Dick['ΦΠΑ Δ'].replace("€ ","")),2))+"€"
-        sun_axia = str(round(float(Dick[' Συνολική αξία '].rstrip(" ").replace("€ ","")),2))+"€"
-        _afm = Dick["ΑΦΜ εκδότη"]
-        company_name = search_company_name(_afm)
-        if company_name is None:
-            company_name = get_company_name(_afm)
-
-        url = url.rstrip('\x00')
-        DATA_ARRAY.append((2,Dick["Ημερομηνία, ώρα"].split(" ")[0],sum_net,sum_fpa," "," ",1," ",Dick["Είδος παραστατικού"],Dick["Αριθμός παραστατικού"]," ","998727941","ΤΑΝΤΕΜ ΑΣΤΙΚΗ ΜΗ ΚΕΡΔΟΣΚΟΠΙΚΗ ΕΤΑΙΡΕΙΑ",1,_afm,company_name,sun_axia,"=HYPERLINK(\""+url+"\")"))
+        date_time = DictArray["Ημερομηνία, ώρα"].split(" ")[0]
+        eidos_parastatikou = DictArray["Είδος παραστατικού"]
+        receipt_number = DictArray["Αριθμός παραστατικού"]
+        sum_net = str(round(float(DictArray['Καθαρή αξία Α'].replace("€ ","")) + float(DictArray['Καθαρή αξία Β'].replace("€ ","")) + float(DictArray['Καθαρή αξία Γ'].replace("€ ","")) + float(DictArray['Καθαρή αξία Δ'].replace("€ ","")) + float(DictArray['Καθαρή αξία Ε'].replace("€ ","")),2))+"€"
+        sum_fpa = str(round(float(DictArray['ΦΠΑ Α'].replace("€ ","")) +float(DictArray['ΦΠΑ Β'].replace("€ ","")) + float(DictArray['ΦΠΑ Γ'].replace("€ ","")) + float(DictArray['ΦΠΑ Δ'].replace("€ ","")),2))+"€"
+        sun_axia = str(round(float(DictArray[' Συνολική αξία '].rstrip(" ").replace("€ ","")),2))+"€"
+        _afm = DictArray["ΑΦΜ εκδότη"]
     except:
         errors.append(url)
         continue
+    cursor.execute(f"select Company_Name from Companies where AFM ='{_afm}';")
+    company_name = cursor.fetchone()
+    if company_name is not None:
+        company_name = company_name[0]
+        
+    if company_name is None:
+        company_name = search_company_name(_afm)
+        if company_name is not None:
+            cursor.execute(f"insert Into Companies(AFM,Company_name) values(?,?);",(_afm,company_name))
+
+    if company_name is None:
+        company_name = get_company_name(_afm)
+        if company_name is not None:
+            cursor.execute(f"insert Into Companies(AFM,Company_name) values(?,?);",(_afm,company_name))
+
+    cursor.execute(f"select Product_Type from Companies where AFM ='{_afm}';")
+    eidos_proiontos = cursor.fetchone()
+    if eidos_proiontos is not None:
+        eidos_proiontos = eidos_proiontos[0]
+
+    Reciept_Object = Reciept(date_time,sum_net,sum_fpa,eidos_parastatikou,sun_axia,receipt_number,eidos_proiontos,_afm,company_name)
+    Rs.append(Reciept_Object)
+    url = url.rstrip('\x00')
+    DATA_ARRAY.append(
+        (2,date_time,sum_net,sum_fpa," "," ",1," ",eidos_parastatikou,receipt_number,eidos_proiontos,"998727941","ΤΑΝΤΕΜ ΑΣΤΙΚΗ ΜΗ ΚΕΡΔΟΣΚΟΠΙΚΗ ΕΤΑΙΡΕΙΑ",1,_afm,company_name,sun_axia,"=HYPERLINK(\""+url+"\")"))
+
+import pickle
+with open("class_data.pckl",'wb') as fll:
+    pickle.dump(Rs,fll)
 
 workbook = openpyxl.Workbook()
 worksheet = workbook.active
