@@ -169,6 +169,16 @@ cursor = db.cursor()
 Window = tk.Tk()
 Window.title("Create excell file from reciepts")
 
+
+tk.Label(Window, text="Number Of Volunteers:").pack()
+num_volunt = tk.Entry(Window)
+num_volunt.place(x=50,y=100)
+
+tk.Label(Window, text="Max Money Value:").pack()
+max_money = tk.Entry(Window)
+max_money.place(x=250,y=100)
+
+
 label=Label(Window, text="", font=('Aerial 18'),wraplength=300, justify="center")
 label.pack()
 

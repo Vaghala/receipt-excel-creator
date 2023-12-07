@@ -56,16 +56,17 @@ def search_company_name(afm):
             return rec["name"]
 
 class Reciept:
-    def __init__(self,hmerominia,katharo_sunolo,sunolo_fpa,eidos_parastatikou,sunolo,arithmos_parastatikou,eidos_proiontos,afm,eponumia):
+    def __init__(self,hmerominia,katharo_sunolo,sunolo_fpa,eidos_parastatikou,sunolo,arithmos_parastatikou,eidos_proiontos,afm,eponumia,url):
         self.Date_time = hmerominia
         self.Sum_of_net_price = katharo_sunolo
         self.Sum_of_fpa = sunolo_fpa
         self.R_type = eidos_parastatikou
         self.Total = sunolo
         self.Number = arithmos_parastatikou
-        self.type_of_goods = eidos_proiontos
+        self.Type_of_goods = eidos_proiontos
         self.Company_afm = afm
         self.Company_Name = eponumia
+        self.AADE_Url = url
     '''
     self.Date_time
     self.Sum_of_net_price
@@ -73,7 +74,7 @@ class Reciept:
     self.R_type
     self.Total
     self.Number
-    self.type_of_goods
+    self.Type_of_goods
     self.Company_afm
     self.Company_Name
     '''
@@ -137,10 +138,9 @@ for url in Urls:
     eidos_proiontos = cursor.fetchone()
     if eidos_proiontos is not None:
         eidos_proiontos = eidos_proiontos[0]
-
-    Reciept_Object = Reciept(date_time,sum_net,sum_fpa,eidos_parastatikou,sun_axia,receipt_number,eidos_proiontos,_afm,company_name)
-    Rs.append(Reciept_Object)
     url = url.rstrip('\x00')
+    Reciept_Object = Reciept(date_time,sum_net,sum_fpa,eidos_parastatikou,sun_axia,receipt_number,eidos_proiontos,_afm,company_name,url)
+    Rs.append(Reciept_Object)
     DATA_ARRAY.append(
         (2,date_time,sum_net,sum_fpa," "," ",1," ",eidos_parastatikou,receipt_number,eidos_proiontos,"998727941","ΤΑΝΤΕΜ ΑΣΤΙΚΗ ΜΗ ΚΕΡΔΟΣΚΟΠΙΚΗ ΕΤΑΙΡΕΙΑ",1,_afm,company_name,sun_axia,"=HYPERLINK(\""+url+"\")"))
 
