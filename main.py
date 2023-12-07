@@ -167,25 +167,24 @@ cursor = db.cursor()
 
 #region WINDOW
 Window = tk.Tk()
-Window.title("Create excell file from reciepts")
+Window.title("Create excel file from reciepts")
 
 
-tk.Label(Window, text="Number Of Volunteers:").pack()
-num_volunt = tk.Entry(Window)
-num_volunt.place(x=50,y=100)
-
-tk.Label(Window, text="Max Money Value:").pack()
-max_money = tk.Entry(Window)
-max_money.place(x=250,y=100)
+tk.Label(Window, text="Number Of Volunteers:").grid(row=2,column=0)
+num_volunt = tk.Entry(Window, width=3).grid(row=3,column=0)
 
 
-label=Label(Window, text="", font=('Aerial 18'),wraplength=300, justify="center")
-label.pack()
+tk.Label(Window, text="Max Money Value:").grid(row=2,column=4)
+max_money = tk.Entry(Window, width=5).grid(row=3,column=4)
 
-Choose_file = ttk.Button(text="Choose File", command= Openfile)
+
+
+label=Label(Window, text="", font=('Aerial 18'),wraplength=300, justify="center").grid(row=1,column=2)
+
+Choose_file = tk.Button(text="Choose File", command= Openfile)
 Choose_file.place(x=100, y=250)
 
-Startbtn = ttk.Button(text="Start", command= Start)
+Startbtn = tk.Button(text="Start", bg="green",command= Start)
 Startbtn.place(x=300, y=250)
 
 progressbar = ttk.Progressbar(Window) 
