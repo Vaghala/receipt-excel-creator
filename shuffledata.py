@@ -15,8 +15,8 @@ class Reciept:
     def set_id(self,_id):
         self.ID = _id
     
-#    def __repr__(self):
-#        return f"{self.ID}\t{self.Total}"
+    def __repr__(self):
+        return f"{self.ID}\t{self.Total}"
 
     def To_tuple(self):
         return (self.ID,self.Total)
@@ -59,16 +59,16 @@ with open("class_data.pckl","rb") as fll:
         Hashed_Receipts[r.ID] = r
 
 items = [(r.ID,r.Total) for r in R]
-MAX_COST = 170
+MAX_COST = 155
 No_of_candidates = int(input("Enter Number of Candidates :  "))
 
 Person_array = [Person(chr(i+65),[],0) for i in range(0,No_of_candidates)]
 R.sort(key=lambda r:r.Total,reverse=True)
 
-Food_Receipts = R # Create an array with only foods
-associate(R,Person_array,MAX_COST)
+Food_Receipts = [obj for obj in R if obj.Type_of_goods=="Τρόφιμα"]
+associate(Food_Receipts,Person_array,MAX_COST)
 
 for p in Person_array:
     print(p.Name,p.Total)
     for rec in p.Array_Of_receipts:
-        print(rec.ID,rec.Total,f"\n{Hashed_Receipts[rec.ID].convert_to_record()}")
+        print(rec.ID,rec.Total,f"\n{Hashed_Receipts[rec.ID]}")

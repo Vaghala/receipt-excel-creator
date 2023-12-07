@@ -28,4 +28,4 @@ no_gemi = ""
 for rec in lst :
     suffix_gemi = rec["id"][-3:]
     if suffix_gemi in "000":
-        print(rec["name"])
+        print(rec["id"],rec["name"])

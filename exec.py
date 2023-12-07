@@ -1,6 +1,32 @@
 import requests,openpyxl,csv,json,sqlite3
 from bs4 import BeautifulSoup
 from openpyxl.cell.cell import ILLEGAL_CHARACTERS_RE
+from openpyxl.styles import PatternFill
+
+def search_company_name(afm):
+    url = "https://publicity.businessportal.gr/api/search"
+    headers={
+        "Host":"publicity.businessportal.gr",
+        "User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/118.0",
+        "Accept":"application/json, text/plain, */*",
+        "Accept-Language":"en-US,en;q=0.5",
+        "Accept-Encoding":"gzip, deflate, br",
+        "Content-Type":"application/json",
+        "Content-Length":"496",
+        "Origin":"https://publicity.businessportal.gr",
+        "Connection":"keep-alive",
+        "Referer":"https://publicity.businessportal.gr/"
+        }
+    data={"dataToBeSent":{"inputField":afm,"city":None,"postcode":None,"legalType":[],"status":[],"suspension":[],"category":[],"specialCharacteristics":[],"employeeNumber":[],"armodiaGEMI":[],"kad":[],"recommendationDateFrom":None,"recommendationDateTo":None,"closingDateFrom":None,"closingDateTo":None,"alterationDateFrom":None,"alterationDateTo":None,"person":[],"personrecommendationDateFrom":None,"personrecommendationDateTo":None,"radioValue":"all","places":[]},"token":None,"language":"el"}
+    response = requests.request('post',url, headers=headers,json=data)
+
+    j = json.loads(response.text)
+    lst = j['company']['hits']
+    no_gemi = ""
+    for rec in lst :
+        suffix_gemi = rec["id"][-3:]
+        if suffix_gemi in "000":
+            return rec["name"]
 
 def get_company_name(afm):
     base_url = "https://publicity.businessportal.gr/api/autocomplete/"
@@ -30,30 +56,17 @@ def get_company_name(afm):
     company_name = j2['companyInfo']['payload']["company"]["name"]
     return company_name
 
-def search_company_name(afm):
-    url = "https://publicity.businessportal.gr/api/search"
-    headers={
-        "Host":"publicity.businessportal.gr",
-        "User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/118.0",
-        "Accept":"application/json, text/plain, */*",
-        "Accept-Language":"en-US,en;q=0.5",
-        "Accept-Encoding":"gzip, deflate, br",
-        "Content-Type":"application/json",
-        "Content-Length":"496",
-        "Origin":"https://publicity.businessportal.gr",
-        "Connection":"keep-alive",
-        "Referer":"https://publicity.businessportal.gr/"
-        }
-    data={"dataToBeSent":{"inputField":afm,"city":None,"postcode":None,"legalType":[],"status":[],"suspension":[],"category":[],"specialCharacteristics":[],"employeeNumber":[],"armodiaGEMI":[],"kad":[],"recommendationDateFrom":None,"recommendationDateTo":None,"closingDateFrom":None,"closingDateTo":None,"alterationDateFrom":None,"alterationDateTo":None,"person":[],"personrecommendationDateFrom":None,"personrecommendationDateTo":None,"radioValue":"all","places":[]},"token":None,"language":"el"}
-    response = requests.request('post',url, headers=headers,json=data)
+def associate (Receipts,People,Max_Cost):
+    N_Receipts = Receipts.copy()
 
-    j = json.loads(response.text)
-    lst = j['company']['hits']
-    no_gemi = ""
-    for rec in lst :
-        suffix_gemi = rec["id"][-3:]
-        if suffix_gemi in "000":
-            return rec["name"]
+    for p in People:
+
+        for r in N_Receipts:
+            if (r.Total > Max_Cost) or (r.Total< 0) or (p.Total + r.Total > Max_Cost) :
+                continue
+            p.Total += r.Total
+            p.Array_Of_receipts.append(r)
+            N_Receipts.remove(r)
 
 class Reciept:
     def __init__(self,hmerominia,katharo_sunolo,sunolo_fpa,eidos_parastatikou,sunolo,arithmos_parastatikou,eidos_proiontos,afm,eponumia,url):
@@ -61,23 +74,37 @@ class Reciept:
         self.Sum_of_net_price = katharo_sunolo
         self.Sum_of_fpa = sunolo_fpa
         self.R_type = eidos_parastatikou
-        self.Total = sunolo
+        self.Total = float(sunolo.replace("€",""))
         self.Number = arithmos_parastatikou
         self.Type_of_goods = eidos_proiontos
         self.Company_afm = afm
         self.Company_Name = eponumia
         self.AADE_Url = url
-    '''
-    self.Date_time
-    self.Sum_of_net_price
-    self.Sum_of_fpa
-    self.R_type
-    self.Total
-    self.Number
-    self.Type_of_goods
-    self.Company_afm
-    self.Company_Name
-    '''
+    def set_id(self,_id):
+        self.ID = _id
+    
+    def __repr__(self):
+        return f"{self.ID}\t{self.Total}"
+
+    def To_tuple(self):
+        return (self.ID,self.Total)
+
+    def fix_num(self):
+        if type(self.Total) is type("1.1"):
+            self.Total = float(self.Total.replace("€",""))
+
+    def convert_to_record(self):
+        return (2,self.Date_time,self.Sum_of_net_price,self.Sum_of_fpa," "," ",1," ",self.R_type,self.Number,self.Type_of_goods,"998727941","ΤΑΝΤΕΜ ΑΣΤΙΚΗ ΜΗ ΚΕΡΔΟΣΚΟΠΙΚΗ ΕΤΑΙΡΕΙΑ",1,self.Company_afm,self.Company_Name,self.Total,"=HYPERLINK(\""+self.AADE_Url+"\")")
+
+class Person:
+    def __init__(self,n,aor,tl):
+        self.Name = n
+        self.Array_Of_receipts = aor
+        self.Total = tl
+    
+    def __repr__(self):
+        return f"{self.Name} {self.Array_Of_receipts} {self.Total}"
+
 
 db = sqlite3.connect("Database.db")
 cursor = db.cursor()
@@ -143,21 +170,67 @@ for url in Urls:
     Rs.append(Reciept_Object)
     DATA_ARRAY.append(
         (2,date_time,sum_net,sum_fpa," "," ",1," ",eidos_parastatikou,receipt_number,eidos_proiontos,"998727941","ΤΑΝΤΕΜ ΑΣΤΙΚΗ ΜΗ ΚΕΡΔΟΣΚΟΠΙΚΗ ΕΤΑΙΡΕΙΑ",1,_afm,company_name,sun_axia,"=HYPERLINK(\""+url+"\")"))
+db.commit()
 
-import pickle
-with open("class_data.pckl",'wb') as fll:
-    pickle.dump(Rs,fll)
+
+Hashed_Receipts = {}
+
+for r in Rs:
+    r.set_id(hash(r))
+    r.fix_num()
+    Hashed_Receipts[r.ID] = r
+
+items = [(r.ID,r.Total) for r in Rs]
+MAX_COST = 151
+No_of_candidates = 3#int(input("Enter Number of Candidates :  "))
+
+
+Rs.sort(key=lambda r:r.Total,reverse=True)
+
+Person_array = [Person(chr(i+65),[],0) for i in range(0,No_of_candidates)]
+Food_Receipts = [obj for obj in Rs if obj.Type_of_goods=="Τρόφιμα"]
+associate(Food_Receipts,Person_array,MAX_COST)
+
 
 workbook = openpyxl.Workbook()
 worksheet = workbook.active
 for row in DATA_ARRAY:
     worksheet.append(row)
+
 worksheet.append(("","",""))
-worksheet.append(("","","ERRORS"))
+for rows in worksheet.iter_rows(min_row=worksheet.max_row, max_row=worksheet.max_row, min_col=None):
+    for cell in rows:
+        cell.fill = PatternFill(start_color="9aec9f", end_color="9aec9f", fill_type = "solid")
+worksheet.append(("","","Grouped Reciepts","Food"))
+
+for p in Person_array:
+    worksheet.append(("","Volunteer :"+p.Name,"Total",p.Total))
+    for rec in p.Array_Of_receipts:
+        worksheet.append(Hashed_Receipts[rec.ID].convert_to_record())
+    worksheet.append(("","",""))
+
+for rows in worksheet.iter_rows(min_row=worksheet.max_row, max_row=worksheet.max_row, min_col=None):
+    for cell in rows:
+        cell.fill = PatternFill(start_color="619df9", end_color="619df9", fill_type = "solid")
+worksheet.append(("","","Grouped Reciepts","Non-Food"))
+del Person_array
+Person_array = [Person(chr(i+65),[],0) for i in range(0,No_of_candidates)]
+Non_Foods = [obj for obj in Rs if obj.Type_of_goods!="Τρόφιμα"]
+associate(Non_Foods,Person_array,MAX_COST)
+
+for p in Person_array:
+    worksheet.append(("","Volunteer :"+p.Name,"Total",p.Total))
+    for rec in p.Array_Of_receipts:
+        worksheet.append(Hashed_Receipts[rec.ID].convert_to_record())
+    worksheet.append(("","",""))
+
+for rows in worksheet.iter_rows(min_row=worksheet.max_row, max_row=worksheet.max_row, min_col=None):
+    for cell in rows:
+        cell.fill = PatternFill(start_color="FF0000", end_color="ff0000", fill_type = "solid")
+
+worksheet.append((" "," "," "," "," "," "," "," "," "," "," "," "," "," "," "," "," ","ERRORS"))
 
 for e in errors:
     e = ILLEGAL_CHARACTERS_RE.sub(r'',e)
-    worksheet.append((" "," ","=HYPERLINK(\""+e+"\")"))
-
+    worksheet.append((" "," "," "," "," "," "," "," "," "," "," "," "," "," "," "," "," ","=HYPERLINK(\""+e+"\")"))
 workbook.save("OUTPUT.xlsx")
-
