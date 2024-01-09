@@ -99,7 +99,7 @@ class Reciept:
             self.Total = float(self.Total.replace("€",""))
 
     def convert_to_record(self):
-        return (2,self.Date_time,self.Sum_of_net_price,self.Sum_of_fpa," "," ",1," ",self.R_type,self.Number,self.Type_of_goods,"998727941","ΤΑΝΤΕΜ ΑΣΤΙΚΗ ΜΗ ΚΕΡΔΟΣΚΟΠΙΚΗ ΕΤΑΙΡΕΙΑ",1,self.Company_afm,self.Company_Name,self.Total,"=HYPERLINK(\""+self.AADE_Url+"\")")
+        return (2,self.Date_time,self.Sum_of_net_price,self.Sum_of_fpa," "," ",1," ",self.R_type,self.Number,self.Type_of_goods,"998727941","ΤΑΝΤΕΜ ΑΣΤΙΚΗ ΜΗ ΚΕΡΔΟΣΚΟΠΙΚΗ ΕΤΑΙΡΕΙΑ",1,self.Company_afm,self.Company_Name,"{:.2f}".format(self.Total),"=HYPERLINK(\""+self.AADE_Url+"\")")
 
 class Person:
     def __init__(self,n,aor,tl):
@@ -120,11 +120,12 @@ def Openfile():
         doc = csv.reader(fl)
         for row in doc:
             Urls.append(row[4])
-    Urls.pop(0)
     ltitle.config(text=f"Opened File :\n{filepath}")
     return Urls
 
 def Execute(U):
+    db = sqlite3.connect("Database.db")
+    cursor = db.cursor()
     Urls.pop(0)
     DATA_ARRAY = []
     errors = []
@@ -202,7 +203,10 @@ def Execute(U):
     Person_array = [Person(chr(i+65),[],0) for i in range(0,No_of_candidates)]
     Food_Receipts = [obj for obj in Rs if obj.Type_of_goods=="Τρόφιμα"]
     associate(Food_Receipts,Person_array,MAX_COST)
-
+    Used_Reciepts = []
+    for p in Person_array:
+        for rec in p.Array_Of_receipts:
+            Used_Reciepts.append(rec)
 
     workbook = openpyxl.Workbook()
     worksheet = workbook.active
@@ -216,7 +220,7 @@ def Execute(U):
     worksheet.append(("","","Grouped Reciepts","Food"))
 
     for p in Person_array:
-        worksheet.append(("","Volunteer :"+p.Name,"Total",p.Total))
+        worksheet.append(("","Volunteer :"+p.Name,"Total","{:.2f}".format(p.Total)))
         for rec in p.Array_Of_receipts:
             worksheet.append(Hashed_Receipts[rec.ID].convert_to_record())
         worksheet.append(("","",""))
@@ -226,12 +230,13 @@ def Execute(U):
             cell.fill = PatternFill(start_color="619df9", end_color="619df9", fill_type = "solid")
     worksheet.append(("","","Grouped Reciepts","Non-Food"))
     del Person_array
+
     Person_array = [Person(chr(i+65),[],0) for i in range(0,No_of_candidates)]
-    Non_Foods = [obj for obj in Rs if obj.Type_of_goods!="Τρόφιμα"]
-    associate(Non_Foods,Person_array,MAX_COST)
+    Remaining_Reciepts = [obj for obj in Rs if obj not in Used_Reciepts]
+    associate(Remaining_Reciepts,Person_array,MAX_COST)
 
     for p in Person_array:
-        worksheet.append(("","Volunteer :"+p.Name,"Total",p.Total))
+        worksheet.append(("","Volunteer :"+p.Name,"Total","{:.2f}".format(p.Total)))
         for rec in p.Array_Of_receipts:
             worksheet.append(Hashed_Receipts[rec.ID].convert_to_record())
         worksheet.append(("","",""))
@@ -246,21 +251,24 @@ def Execute(U):
         e = ILLEGAL_CHARACTERS_RE.sub(r'',e)
         worksheet.append((" "," "," "," "," "," "," "," "," "," "," "," "," "," "," "," "," ","=HYPERLINK(\""+e+"\")"))
     workbook.save("OUTPUT.xlsx")
+    print("Ended")
+
 
 def Start():
     print("Started")
     if Urls == []:
         messagebox.showinfo("showinfo", "Please Choose File")
         return None
-    Execute(Urls)
-    messagebox.showinfo("showinfo", "Completed click ok to close") 
-    Window.destroy()
 
+    t = Thread(target=Execute,args=(Urls,))
+    t.start()
+    if not t.is_alive() :
+        messagebox.showinfo("showinfo", "Completed click ok to close") 
+        Window.destroy()
+    #Execute(Urls)
 
 
 Urls = []
-db = sqlite3.connect("Database.db")
-cursor = db.cursor()
 
 #region WINDOW
 Window = tk.Tk()

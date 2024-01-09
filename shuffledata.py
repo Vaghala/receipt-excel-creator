@@ -16,7 +16,7 @@ class Reciept:
         self.ID = _id
     
     def __repr__(self):
-        return f"{self.ID}\t{self.Total}"
+        return f"{self.Number}\t{self.ID}\t{self.Total}"
 
     def To_tuple(self):
         return (self.ID,self.Total)
@@ -70,5 +70,15 @@ associate(Food_Receipts,Person_array,MAX_COST)
 
 for p in Person_array:
     print(p.Name,p.Total)
+    print(f"Len: {len(p.Array_Of_receipts)}")
     for rec in p.Array_Of_receipts:
         print(rec.ID,rec.Total,f"\n{Hashed_Receipts[rec.ID]}")
+
+Used_Reciepts = []
+for p in Person_array:
+    for rec in p.Array_Of_receipts:
+        Used_Reciepts.append(rec)
+
+Remaining = [obj for obj in R if obj not in Used_Reciepts]
+print(f"All receipts len : {len(R)}\n Remaining reciepts {len(Remaining)}") 
+#*[item for item in R if item not in other]
