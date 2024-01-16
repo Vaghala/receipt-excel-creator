@@ -124,7 +124,7 @@ def Openfile():
     return Urls
 
 def Execute(U):
-    db = sqlite3.connect("Database.db")
+    db = sqlite3.connect("./Database.db")
     cursor = db.cursor()
     Urls.pop(0)
     DATA_ARRAY = []
@@ -251,11 +251,11 @@ def Execute(U):
         e = ILLEGAL_CHARACTERS_RE.sub(r'',e)
         worksheet.append((" "," "," "," "," "," "," "," "," "," "," "," "," "," "," "," "," ","=HYPERLINK(\""+e+"\")"))
     workbook.save("OUTPUT.xlsx")
-    print("Ended")
+    #print("Ended")
 
 
 def Start():
-    print("Started")
+    #print("Started")
     if Urls == []:
         messagebox.showinfo("showinfo", "Please Choose File")
         return None
@@ -291,6 +291,9 @@ Choose_file.place(x=100, y=250)
 
 Startbtn = tk.Button(text="Start", bg="green",command= Start)
 Startbtn.place(x=300, y=250)
+
+progressbar2 = ttk.Progressbar(Window) 
+progressbar2.grid(column = 0, row = 4, columnspan = 4)
 
 progressbar = ttk.Progressbar(Window) 
 progressbar.place(x=10, y=400, width=470)
