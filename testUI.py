@@ -1,12 +1,14 @@
-import time
-import tkinter as tk
-from tkinter import ttk,Label,messagebox
-from tkinter.filedialog import askopenfilename
+
 from threading import Thread
 import requests,openpyxl,csv,json,sqlite3
 from bs4 import BeautifulSoup
 from openpyxl.cell.cell import ILLEGAL_CHARACTERS_RE
 from openpyxl.styles import PatternFill
+import tkinter as tk
+import tkinter.font as tkFont
+from tkinter.filedialog import askopenfilename
+from tkinter import ttk,messagebox,Frame, Menu, Toplevel
+
 
 def search_company_name(afm):
     url = "https://publicity.businessportal.gr/api/search"
@@ -110,9 +112,7 @@ class Person:
     def __repr__(self):
         return f"{self.Name} {self.Array_Of_receipts} {self.Total}"
 
-
-
-def Openfile():
+def OpenFile(this):
     filepath = askopenfilename(filetypes=[("csv Files", "*.csv"), ("All Files", "*.*")])
     if not filepath:
         return None
@@ -120,21 +120,23 @@ def Openfile():
         doc = csv.reader(fl)
         for row in doc:
             Urls.append(row[4])
-    ltitle.config(text=f"Opened File :\n{filepath}")
+
+    this.L_File_Path.config(text=f"{filepath}")
     return Urls
 
-def Execute(U):
+def Execute(U,this):
     db = sqlite3.connect("./Database.db")
     cursor = db.cursor()
     Urls.pop(0)
     DATA_ARRAY = []
     errors = []
     Rs = []
-    MAX_COST = float(max_money.get())
-    No_of_candidates = int(num_volunt.get())
+    MAX_COST = float(this.Input_Max_amount_of_Money.get()) if this.Input_Max_amount_of_Money.get() != '' else 0
+    No_of_candidates = int(this.Input_Number_of_Volunteers.get()) if this.Input_Number_of_Volunteers.get() != '' else 0
+
     for url in Urls:
-        progressbar['value'] += 100/len(Urls)
-        Window.update_idletasks()
+        this.progressbar['value'] += 100/len(Urls)
+        this.Window.update_idletasks()
         try:
             r = requests.get(url)
         except:
@@ -251,50 +253,196 @@ def Execute(U):
         e = ILLEGAL_CHARACTERS_RE.sub(r'',e)
         worksheet.append((" "," "," "," "," "," "," "," "," "," "," "," "," "," "," "," "," ","=HYPERLINK(\""+e+"\")"))
     workbook.save("OUTPUT.xlsx")
-    #print("Ended")
+    messagebox.showinfo("showinfo", "Task Completed") 
 
-def Start():
-    #print("Started")
+def Start(this):
     if Urls == []:
         messagebox.showinfo("showinfo", "Please Choose File")
         return None
 
-    t = Thread(target=Execute,args=(Urls,))
+    t = Thread(target=Execute,args=(Urls,this))
     t.start()
     if not t.is_alive() :
-        messagebox.showinfo("showinfo", "Completed click ok to close") 
-        Window.destroy()
+        messagebox.showinfo("showinfo", "Completed click ok to close")
+        this.destroy()
     #Execute(Urls)
 
 
 Urls = []
+# region UI inits
+class MainWindow:
+    def __init__(self,root):
+        self.Window = root
+        self.Window.title("Recipt to XLS maker")
+        width=600
+        height=500
+        screenwidth = self.Window.winfo_screenwidth()
+        screenheight = self.Window.winfo_screenheight()
+        alignstr = '%dx%d+%d+%d' % (width, height, (screenwidth - width) / 2, (screenheight - height) / 2)
+        self.Window.geometry(alignstr)
+        self.Window.resizable(width=False, height=False)
 
-#region WINDOW
-Window = tk.Tk()
-Window.title("Create excel file from reciepts")
+        self.Window.iconbitmap("./logo.ico")
+
+        MenuBar = Menu(self.Window)
+        self.Window.config(menu=MenuBar)
+
+        Menu_File = Menu(MenuBar,tearoff=0)
+        Menu_File.add_command(label="Update Database", command=Window_Update_Database)
+        Menu_File.add_separator()
+        Menu_File.add_command(label="Exit", command=self.Window.destroy)
+
+        MenuBar.add_cascade(label="File", menu=Menu_File)
+        MenuBar.add_cascade(label="Help", command=Help_Window)
+
+        self.L_Select_file=tk.Label(self.Window)
+        ft = tkFont.Font(family='Times',size=10)
+        self.L_Select_file["font"] = ft
+        self.L_Select_file["fg"] = "#333333"
+        self.L_Select_file["justify"] = "center"
+        self.L_Select_file["text"] = "Selected File"
+        self.L_Select_file.place(x=60,y=40,width=132,height=32)
+
+        self.L_File_Path=tk.Label(self.Window)
+        ft = tkFont.Font(family='Times',size=10)
+        self.L_File_Path["font"] = ft
+        self.L_File_Path["fg"] = "#333333"
+        self.L_File_Path["justify"] = "center"
+        self.L_File_Path["text"] = None
+        self.L_File_Path.place(x=180,y=40,width=376,height=30)
+
+        L_Number_of_Volunteers=tk.Label(self.Window)
+        ft = tkFont.Font(family='Times',size=10)
+        L_Number_of_Volunteers["font"] = ft
+        L_Number_of_Volunteers["fg"] = "#333333"
+        L_Number_of_Volunteers["justify"] = "center"
+        L_Number_of_Volunteers["text"] = "Number of Volunteers"
+        L_Number_of_Volunteers.place(x=70,y=140,width=171,height=39)
+
+        L_Max_amount_of_Money=tk.Label(self.Window)
+        ft = tkFont.Font(family='Times',size=10)
+        L_Max_amount_of_Money["font"] = ft
+        L_Max_amount_of_Money["fg"] = "#333333"
+        L_Max_amount_of_Money["justify"] = "center"
+        L_Max_amount_of_Money["text"] = "Max Amount of Money"
+        L_Max_amount_of_Money.place(x=340,y=140,width=171,height=39)
+
+        self.Input_Number_of_Volunteers=tk.Entry(self.Window)
+        self.Input_Number_of_Volunteers["borderwidth"] = "1px"
+        ft = tkFont.Font(family='Times',size=10)
+        self.Input_Number_of_Volunteers["font"] = ft
+        self.Input_Number_of_Volunteers["fg"] = "#333333"
+        self.Input_Number_of_Volunteers["justify"] = "center"
+        self.Input_Number_of_Volunteers["text"] = ""
+        self.Input_Number_of_Volunteers.place(x=120,y=190,width=70,height=30)
+
+        self.Input_Max_amount_of_Money=tk.Entry(self.Window)
+        self.Input_Max_amount_of_Money["borderwidth"] = "1px"
+        ft = tkFont.Font(family='Times',size=10)
+        self.Input_Max_amount_of_Money["font"] = ft
+        self.Input_Max_amount_of_Money["fg"] = "#333333"
+        self.Input_Max_amount_of_Money["justify"] = "center"
+        self.Input_Max_amount_of_Money["text"] = ""
+        self.Input_Max_amount_of_Money.place(x=390,y=190,width=70,height=30)
 
 
-tk.Label(Window, text="Number Of Volunteers:").grid(row=2,column=0)
-num_volunt = tk.Entry(Window, width=3)
-num_volunt.grid(row=3,column=0)
+        Choose_File_Button=tk.Button(self.Window)
+        Choose_File_Button["bg"] = "#ff8c00"
+        ft = tkFont.Font(family='Times',size=10)
+        Choose_File_Button["font"] = ft
+        Choose_File_Button["fg"] = "#000000"
+        Choose_File_Button["justify"] = "center"
+        Choose_File_Button["text"] = "Choose File"
+        Choose_File_Button.place(x=260,y=260,width=70,height=25)
+        Choose_File_Button["command"] = lambda: OpenFile(self)
 
-tk.Label(Window, text="Max Money Value:").grid(row=2,column=4)
-max_money = tk.Entry(Window, width=5)
-max_money.grid(row=3,column=4)
+        Start_Button=tk.Button(self.Window)
+        Start_Button["bg"] = "#5fb878"
+        ft = tkFont.Font(family='Times',size=10)
+        Start_Button["font"] = ft
+        Start_Button["fg"] = "#000000"
+        Start_Button["justify"] = "center"
+        Start_Button["text"] = "Start"
+        Start_Button.place(x=260,y=340,width=70,height=25)
+        Start_Button["command"] = lambda: Start(self)
+
+        self.progressbar = ttk.Progressbar(self.Window) 
+        self.progressbar.place(x=15, y=430, width=570)
+
+        self.Window.bind("<Control-w>",lambda e:self.Window.destroy())
 
 
-ltitle = Label(Window, text="", font=('Aerial 12'),wraplength=200, justify="center")
-ltitle.grid(row=1,column=2)
-Choose_file = tk.Button(text="Choose File", command= Openfile)
-Choose_file.place(x=100, y=250)
+class Help_Window:
+    def __init__(self):
+        self.Window_Update_Database = Toplevel()
+        self.Window_Update_Database.title("Help")
+        self.Window_Update_Database.iconbitmap("./logo.ico")
+        self.Window_Update_Database.geometry('800x600')
 
-Startbtn = tk.Button(text="Start", bg="green",command= Start)
-Startbtn.place(x=300, y=250)
+        self.Window_Update_Database.bind("<Control-w>",lambda e:self.Window_Update_Database.destroy())
+        self.Window_Update_Database.grab_set()
 
-progressbar = ttk.Progressbar(Window) 
-progressbar.place(x=10, y=400, width=470)
+class Window_Update_Database:
+    def __init__(self):
+        self.Window_Update_Database = Toplevel()
+        self.Window_Update_Database.title("Update Database")
+        self.Window_Update_Database.iconbitmap("./logo.ico")
+        self.Window_Update_Database.geometry('300x150')
 
-Window.geometry("500x500")
-Window.bind("<Control-w>",lambda e:Window.destroy())
-Window.mainloop()
-#endregion
+        self.Top_L_DB=tk.Label(self.Window_Update_Database)
+        ft = tkFont.Font(family='Times',size=10)
+        self.Top_L_DB["font"] = ft
+        self.Top_L_DB["fg"] = "#333333"
+        self.Top_L_DB["justify"] = "center"
+        self.Top_L_DB["text"] = "Excel File :"
+        self.Top_L_DB.place(x=10,y=20,width=120,height=35)
+
+        self.Top_Button_Select_Database=tk.Button(self.Window_Update_Database)
+        self.Top_Button_Select_Database["bg"] = "#e9e9ed"
+        ft = tkFont.Font(family='Times',size=10)
+        self.Top_Button_Select_Database["font"] = ft
+        self.Top_Button_Select_Database["fg"] = "#000000"
+        self.Top_Button_Select_Database["justify"] = "center"
+        self.Top_Button_Select_Database["text"] = "Select File"
+        self.Top_Button_Select_Database.place(x=160,y=20,width=96,height=30)
+        self.Top_Button_Select_Database["command"] = self.Open_File_For_DB_Update
+
+        self.Top_Label_Selected_File=tk.Label(self.Window_Update_Database)
+        ft = tkFont.Font(family='Times',size=10)
+        self.Top_Label_Selected_File["font"] = ft
+        self.Top_Label_Selected_File["fg"] = "#333333"
+        self.Top_Label_Selected_File["justify"] = "center"
+        self.Top_Label_Selected_File["text"] = None
+        self.Top_Label_Selected_File["wraplength"] = 150
+        self.Top_Label_Selected_File.place(x=0,y=55,width=300,height=50)
+
+        self.Top_Button_Start=tk.Button(self.Window_Update_Database)
+        self.Top_Button_Start["bg"] = "#e9e9ed"
+        ft = tkFont.Font(family='Times',size=10)
+        self.Top_Button_Start["font"] = ft
+        self.Top_Button_Start["fg"] = "#000000"
+        self.Top_Button_Start["justify"] = "center"
+        self.Top_Button_Start["text"] = "Update"
+        self.Top_Button_Start.place(x=110,y=115,width=70,height=25)
+        self.Top_Button_Start["command"] = lambda: self.Update_Database
+
+        self.Window_Update_Database.bind("<Control-w>",lambda e:self.Window_Update_Database.destroy())
+        self.Window_Update_Database.grab_set()
+
+
+    def Open_File_For_DB_Update(self):
+        filepath = askopenfilename(filetypes=[("Excel Files", "*.xlsx"), ("All Files", "*.*")])
+        if not filepath:
+            return None
+        self.Top_Label_Selected_File.config(text=f"{filepath}")
+        return filepath
+
+    def Update_Database():
+
+        return 0
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    window = MainWindow(root)
+    root.mainloop()
+    #root.protocol("WM_DELETE_WINDOW", on_closing)
