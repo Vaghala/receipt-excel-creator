@@ -7,10 +7,15 @@ from openpyxl.styles import PatternFill
 import tkinter as tk
 import tkinter.font as tkFont
 from tkinter.filedialog import askopenfilename
-from tkinter import ttk,messagebox,Frame, Menu, Toplevel
-
+from tkinter import ttk,messagebox,Frame, Menu, Toplevel, Scrollbar, Canvas, Frame
+from PIL import Image,ImageTk
 
 DATABASE_LOCATION = 'Database.db'
+
+#LOGO_ICON_LOCATION = "_internal/assets/logo.ico"
+
+LOGO_ICON_LOCATION = "logo.ico"
+
 
 def search_company_name(afm):
     url = "https://publicity.businessportal.gr/api/search"
@@ -269,13 +274,43 @@ def Start(this):
         this.destroy()
     #Execute(Urls)
 
+def Create_Label(Window,Font_Type='Times',Position = "center",Font_Size=10,Text_Color = "#333333", Label_text=""):
+    Out_Label=tk.Label(Window)
+    ft = tkFont.Font(family=Font_Type,size=Font_Size)
+    Out_Label["font"] = ft
+    Out_Label["fg"] = Text_Color
+    Out_Label["justify"] = "center"
+    Out_Label["text"] = Label_text
+    Out_Label.place(x=60,y=40,width=130,height=32)
+    return Out_Label  
+
+def Create_Button(Window,Background_Color="#e9e9ed",Font_Type='Times',Font_Size=10,Text_Color = "#333333", Label_text=""):
+    Out_Button=tk.Button(Window)
+    Out_Button["bg"] = Background_Color
+    ft = tkFont.Font(family='Times',size=Font_Size)
+    Out_Button["font"] = ft
+    Out_Button["fg"] = Text_Color
+    Out_Button["justify"] = "center"
+    Out_Button["text"] = Label_text
+    return Out_Button
+
+def Create_Input(Window,borderwidth="1px",Font_Type='Times',Font_Size=10,Text_Color = "#333333", Label_text=""):
+    Out_InputField=tk.Entry(Window)
+    Out_InputField["borderwidth"] = borderwidth
+    ft = tkFont.Font(family=Font_Type,size=Font_Size)
+    Out_InputField["font"] = ft
+    Out_InputField["fg"] = Text_Color
+    Out_InputField["justify"] = "center"
+    Out_InputField["text"] = Label_text
+    return Out_InputField
+
 
 Urls = []
 # region UI inits
 class MainWindow:
     def __init__(self,root):
         self.Window = root
-        self.Window.title("Recipt to XLS maker")
+        self.Window.title("Receipt to XLS maker")
         width=600
         height=500
         screenwidth = self.Window.winfo_screenwidth()
@@ -284,7 +319,7 @@ class MainWindow:
         self.Window.geometry(alignstr)
         self.Window.resizable(width=False, height=False)
 
-        self.Window.iconbitmap("./logo.ico")
+        self.Window.iconbitmap(LOGO_ICON_LOCATION)
 
         MenuBar = Menu(self.Window)
         self.Window.config(menu=MenuBar)
@@ -298,75 +333,31 @@ class MainWindow:
         MenuBar.add_cascade(label="File", menu=Menu_File)
         MenuBar.add_cascade(label="Help", command=Help_Window)
 
-        self.L_Select_file=tk.Label(self.Window)
-        ft = tkFont.Font(family='Times',size=13)
-        self.L_Select_file["font"] = ft
-        self.L_Select_file["fg"] = "#333333"
-        self.L_Select_file["justify"] = "center"
-        self.L_Select_file["text"] = "Selected File :"
+        self.L_Select_file = Create_Label(self.Window,Font_Size=13,Label_text="Selected File :")
         self.L_Select_file.place(x=60,y=40,width=130,height=32)
 
-        self.L_File_Path=tk.Label(self.Window)
-        ft = tkFont.Font(family='Times',size=10)
-        self.L_File_Path["font"] = ft
-        self.L_File_Path["fg"] = "#333333"
-        self.L_File_Path["justify"] = "center"
-        self.L_File_Path["text"] = "No file selected"
+        self.L_File_Path= Create_Label(self.Window,Label_text="No file selected")
         self.L_File_Path.place(x=180,y=40,width=376,height=30)
 
-        self.L_Number_of_Volunteers=tk.Label(self.Window)
-        ft = tkFont.Font(family='Times',size=12)
-        self.L_Number_of_Volunteers["font"] = ft
-        self.L_Number_of_Volunteers["fg"] = "#333333"
-        self.L_Number_of_Volunteers["justify"] = "center"
-        self.L_Number_of_Volunteers["text"] = "Number of Volunteers"
-        self.L_Number_of_Volunteers.place(x=70,y=140,width=171,height=39)
 
-        self.L_Max_amount_of_Money=tk.Label(self.Window)
-        ft = tkFont.Font(family='Times',size=12)
-        self.L_Max_amount_of_Money["font"] = ft
-        self.L_Max_amount_of_Money["fg"] = "#333333"
-        self.L_Max_amount_of_Money["justify"] = "center"
-        self.L_Max_amount_of_Money["text"] = "Max Amount of Money"
-        self.L_Max_amount_of_Money.place(x=340,y=140,width=171,height=39)
-
-        self.Input_Number_of_Volunteers=tk.Entry(self.Window)
-        self.Input_Number_of_Volunteers["borderwidth"] = "1px"
-        ft = tkFont.Font(family='Times',size=11)
-        self.Input_Number_of_Volunteers["font"] = ft
-        self.Input_Number_of_Volunteers["fg"] = "#333333"
-        self.Input_Number_of_Volunteers["justify"] = "center"
-        self.Input_Number_of_Volunteers["text"] = ""
-        self.Input_Number_of_Volunteers.place(x=120,y=190,width=70,height=30)
-
-        self.Input_Max_amount_of_Money=tk.Entry(self.Window)
-        self.Input_Max_amount_of_Money["borderwidth"] = "1px"
-        ft = tkFont.Font(family='Times',size=11)
-        self.Input_Max_amount_of_Money["font"] = ft
-        self.Input_Max_amount_of_Money["fg"] = "#333333"
-        self.Input_Max_amount_of_Money["justify"] = "center"
-        self.Input_Max_amount_of_Money["text"] = ""
-        self.Input_Max_amount_of_Money.place(x=390,y=190,width=70,height=30)
-
-
-        self.Choose_File_Button=tk.Button(self.Window)
-        self.Choose_File_Button["bg"] = "#ff8c00"
-        ft = tkFont.Font(family='Times',size=10)
-        self.Choose_File_Button["font"] = ft
-        self.Choose_File_Button["fg"] = "#000000"
-        self.Choose_File_Button["justify"] = "center"
-        self.Choose_File_Button["text"] = "Choose File"
-        self.Choose_File_Button.place(x=260,y=260,width=70,height=25)
+        self.Choose_File_Button = Create_Button(self.Window,Background_Color="#ff8c00",Label_text="Choose File")
+        self.Choose_File_Button.place(x=260,y=110,width=70,height=25)
         self.Choose_File_Button["command"] = lambda: OpenFile(self)
 
-        self.Start_Button=tk.Button(self.Window)
-        self.Start_Button["bg"] = "#5fb878"
-        ft = tkFont.Font(family='Times',size=10)
-        self.Start_Button["font"] = ft
-        self.Start_Button["fg"] = "#000000"
-        self.Start_Button["justify"] = "center"
-        self.Start_Button["text"] = "Start"
-        self.Start_Button.place(x=260,y=340,width=70,height=25)
+        self.L_Number_of_Volunteers = Create_Label(self.Window,Font_Size=12,Label_text="Number of Volunteers")
+        self.L_Number_of_Volunteers.place(x=70,y=190,width=171,height=39)
+
+        self.L_Max_amount_of_Money=Create_Label(self.Window,Font_Size=12,Label_text="Max Amount of Money")
+        self.L_Max_amount_of_Money.place(x=340,y=190,width=171,height=39)
+
+        self.Input_Number_of_Volunteers =  Create_Input(self.Window)
+        self.Input_Number_of_Volunteers.place(x=120,y=240,width=70,height=30)
+
+        self.Input_Max_amount_of_Money = Create_Input(self.Window)
+        self.Input_Max_amount_of_Money.place(x=390,y=240,width=70,height=30)
+
+        self.Start_Button = Create_Button(self.Window,Background_Color="#5fb878",Label_text="Start")
+        self.Start_Button.place(x=260,y=330,width=70,height=25)
         self.Start_Button["command"] = lambda: Start(self)
 
         self.progressbar = ttk.Progressbar(self.Window) 
@@ -374,190 +365,107 @@ class MainWindow:
 
         self.Window.bind("<Control-w>",lambda e:self.Window.destroy())
 
-class Help_Window:
-    def __init__(self):
-        self.Window_Update_Database = Toplevel()
-        self.Window_Update_Database.title("Help")
-        self.Window_Update_Database.iconbitmap("./logo.ico")
-        self.Window_Update_Database.geometry('800x600')
-
-        self.Window_Update_Database.bind("<Control-w>",lambda e:self.Window_Update_Database.destroy())
-        self.Window_Update_Database.grab_set()
-
 class Window_Update_Database:
     def __init__(self):
         self.Window_Update_Database = Toplevel()
         self.Window_Update_Database.title("Update Database")
-        self.Window_Update_Database.iconbitmap("./logo.ico")
+        self.Window_Update_Database.iconbitmap(LOGO_ICON_LOCATION)
         self.Window_Update_Database.geometry('300x150')
 
-        self.Top_L_DB=tk.Label(self.Window_Update_Database)
-        ft = tkFont.Font(family='Times',size=10)
-        self.Top_L_DB["font"] = ft
-        self.Top_L_DB["fg"] = "#333333"
-        self.Top_L_DB["justify"] = "center"
-        self.Top_L_DB["text"] = "Excel File :"
+        self.Top_L_DB =Create_Label(self.Window_Update_Database,Font_Size=10,Label_text="Excel File :")
         self.Top_L_DB.place(x=10,y=20,width=120,height=35)
 
-        self.Top_Button_Select_Database=tk.Button(self.Window_Update_Database)
-        self.Top_Button_Select_Database["bg"] = "#e9e9ed"
-        ft = tkFont.Font(family='Times',size=10)
-        self.Top_Button_Select_Database["font"] = ft
-        self.Top_Button_Select_Database["fg"] = "#000000"
-        self.Top_Button_Select_Database["justify"] = "center"
-        self.Top_Button_Select_Database["text"] = "Select File"
-        self.Top_Button_Select_Database.place(x=160,y=20,width=96,height=30)
-        self.Top_Button_Select_Database["command"] = self.Open_File_For_DB_Update
+        self.Top_Button_Select_Xlsx_File = Create_Button(self.Window_Update_Database,Label_text="Select File")
+        self.Top_Button_Select_Xlsx_File.place(x=160,y=20,width=96,height=30)
+        self.Top_Button_Select_Xlsx_File["command"] = self.Open_File_For_DB_Update
 
-        self.Top_Label_Selected_File=tk.Label(self.Window_Update_Database)
-        ft = tkFont.Font(family='Times',size=10)
-        self.Top_Label_Selected_File["font"] = ft
-        self.Top_Label_Selected_File["fg"] = "#333333"
-        self.Top_Label_Selected_File["justify"] = "center"
-        self.Top_Label_Selected_File["text"] = None
+        self.Top_Label_Selected_File =Create_Label(self.Window_Update_Database,Font_Size=10)
+        self.Top_L_DB.place(x=10,y=20,width=120,height=35)
         self.Top_Label_Selected_File["wraplength"] = 150
         self.Top_Label_Selected_File.place(x=0,y=55,width=300,height=50)
 
-        self.Top_Button_Start=tk.Button(self.Window_Update_Database)
-        self.Top_Button_Start["bg"] = "#e9e9ed"
-        ft = tkFont.Font(family='Times',size=10)
-        self.Top_Button_Start["font"] = ft
-        self.Top_Button_Start["fg"] = "#000000"
-        self.Top_Button_Start["justify"] = "center"
-        self.Top_Button_Start["text"] = "Update"
+
+        self.Top_Button_Start = Create_Button(self.Window_Update_Database,Label_text="Update")
         self.Top_Button_Start.place(x=110,y=115,width=70,height=25)
-        self.Top_Button_Start["command"] = lambda: self.Update_Database
+        self.Top_Button_Start["command"] = self.Update_Database_Action
 
         self.Window_Update_Database.bind("<Control-w>",lambda e:self.Window_Update_Database.destroy())
         self.Window_Update_Database.grab_set()
 
 
     def Open_File_For_DB_Update(self):
-        filepath = askopenfilename(filetypes=[("Excel Files", "*.xlsx"), ("All Files", "*.*")])
-        if not filepath:
+        self.Excel_File_To_Insert = askopenfilename(filetypes=[("Excel Files", "*.xlsx"), ("All Files", "*.*")])
+        if not self.Excel_File_To_Insert:
+            self.Excel_File_To_Insert = None
             return None
-        self.Top_Label_Selected_File.config(text=f"{filepath}")
-        return filepath
+        self.Top_Label_Selected_File.config(text=f"{self.Excel_File_To_Insert}")
+        return self.Excel_File_To_Insert
 
-    def Update_Database():
-        #TODO : Read with openpyxl
-        #and write to db
+    def Update_Database_Action(self):
+        Data = []
+        workbook = openpyxl.load_workbook(self.Excel_File_To_Insert)
+        active_sheet = workbook.active
+        for row in range(active_sheet.max_row):
+            row_values = [x.value for x in active_sheet[row+1]]
+            row_values = (str(row_values[2]),row_values[3],row_values[1])
+            Data.append(row_values)
+        workbook.close()
+        Data.pop()  # Αφαίρεση της πρώτης γραμμης που ειναι ο Τίτλος
+        with sqlite3.connect(DATABASE_LOCATION) as db:
+            cursor = db.cursor()
+            cursor.executemany("insert or replace into Companies (AFM, Company_Name,Product_Type) VALUES (?,?,?)", Data)
+            db.commit()
+        messagebox.showinfo("Task ended","Database Updated !")
+        self.Window_Update_Database.destroy()
         return 0
 
 class Window_Search_Or_Edit:
     def __init__(self):
         self.Window_Search_Or_Edit_Database = Toplevel()
         self.Window_Search_Or_Edit_Database.title("Search or edit record in database")
-        self.Window_Search_Or_Edit_Database.iconbitmap("./logo.ico")
+        self.Window_Search_Or_Edit_Database.iconbitmap(LOGO_ICON_LOCATION)
         self.Window_Search_Or_Edit_Database.geometry('310x300')
 
         self.Window_Search_Or_Edit_Database.resizable(width=False, height=False)
 
-        L_AFM=tk.Label(self.Window_Search_Or_Edit_Database)
-        ft = tkFont.Font(family='Times',size=10)
-        L_AFM["font"] = ft
-        L_AFM["fg"] = "#333333"
-        L_AFM["justify"] = "center"
-        L_AFM["text"] = "ΑΦΜ :"
+        L_AFM = Create_Label(self.Window_Search_Or_Edit_Database,Label_text="ΑΦΜ :")
         L_AFM.place(x=0,y=20,width=70,height=25)
 
-        self.Input_AFM=tk.Entry(self.Window_Search_Or_Edit_Database)
-        self.Input_AFM["borderwidth"] = "1px"
-        ft = tkFont.Font(family='Times',size=11)
-        self.Input_AFM["font"] = ft
-        self.Input_AFM["fg"] = "#333333"
-        self.Input_AFM["justify"] = "center"
-        self.Input_AFM["text"] = "Entry"
+        self.Input_AFM = Create_Input(self.Window_Search_Or_Edit_Database,Font_Size=11,Label_text="Entry")
         #self.Input_AFM.bind("<Return>", Search_Inside_DB)
         self.Input_AFM.place(x=100,y=20,width=157,height=30)
 
-        self.Button_Search_Database=tk.Button(self.Window_Search_Or_Edit_Database)
-        self.Button_Search_Database["bg"] = "#e9e9ed"
-        ft = tkFont.Font(family='Times',size=10)
-        self.Button_Search_Database["font"] = ft
-        self.Button_Search_Database["fg"] = "#000000"
-        self.Button_Search_Database["justify"] = "center"
-        self.Button_Search_Database["text"] = "Αναζήτηση"
+        self.Button_Search_Database = Create_Button(self.Window_Search_Or_Edit_Database,Label_text="Αναζήτηση",Font_Size=10)
         self.Button_Search_Database.place(x=120,y=70,width=80,height=30)
         self.Button_Search_Database["command"] = self.Search_Inside_DB
 
-        L_AFM_2=tk.Label(self.Window_Search_Or_Edit_Database)
-        ft = tkFont.Font(family='Times',size=11)
-        L_AFM_2["font"] = ft
-        L_AFM_2["fg"] = "#333333"
-        L_AFM_2["justify"] = "left"
-        L_AFM_2["text"] = "ΑΦΜ :"
+        L_AFM_2 = Create_Label(self.Window_Search_Or_Edit_Database,Position="left",Font_Size=10,Label_text="ΑΦΜ :")
         L_AFM_2.place(x=10,y=130,width=70,height=25)
 
-
-        self.L_Database_AFM=tk.Label(self.Window_Search_Or_Edit_Database)
-        ft = tkFont.Font(family='Times',size=10)
-        self.L_Database_AFM["font"] = ft
-        self.L_Database_AFM["fg"] = "#333333"
-        self.L_Database_AFM["justify"] = "center"
-        self.L_Database_AFM["text"] = None
+        self.L_Database_AFM = Create_Label(self.Window_Search_Or_Edit_Database,Font_Size=10,Label_text="")
         self.L_Database_AFM.place(x=80,y=130,width=116,height=30)
 
-
-        L_Eponumia=tk.Label(self.Window_Search_Or_Edit_Database)
-        ft = tkFont.Font(family='Times',size=10)
-        L_Eponumia["font"] = ft
-        L_Eponumia["fg"] = "#333333"
-        L_Eponumia["justify"] = "left"
-        L_Eponumia["text"] = "Επωνυμία :"
+        L_Eponumia = Create_Label(self.Window_Search_Or_Edit_Database,Position="left",Font_Size=10,Label_text="Επωνυμία :")
         L_Eponumia.place(x=10,y=160,width=70,height=25)
 
-        self.L_Database_Company=tk.Label(self.Window_Search_Or_Edit_Database)
-        ft = tkFont.Font(family='Times',size=10)
-        self.L_Database_Company["font"] = ft
-        self.L_Database_Company["fg"] = "#333333"
-        self.L_Database_Company["justify"] = "center"
+        self.L_Database_Company = Create_Label(self.Window_Search_Or_Edit_Database,Font_Size=10,Label_text="")
         self.L_Database_Company["wraplength"] = 150
-        self.L_Database_Company["text"] = None
         self.L_Database_Company.place(x=85,y=160,width=150,height=30)
 
-
-        L_Eidos=tk.Label(self.Window_Search_Or_Edit_Database)
-        ft = tkFont.Font(family='Times',size=10)
-        L_Eidos["font"] = ft
-        L_Eidos["fg"] = "#333333"
-        L_Eidos["justify"] = "left"
-        L_Eidos["text"] = "Είδος :"
+        L_Eidos= Create_Label(self.Window_Search_Or_Edit_Database,Position="left",Font_Size=10,Label_text="Είδος :")
         L_Eidos.place(x=10,y=190,width=70,height=25)
 
-        self.L_Database_Type=tk.Label(self.Window_Search_Or_Edit_Database)
-        ft = tkFont.Font(family='Times',size=10)
-        self.L_Database_Type["font"] = ft
-        self.L_Database_Type["fg"] = "#333333"
-        self.L_Database_Type["justify"] = "center"
-        self.L_Database_Type["text"] = None
+        self.L_Database_Type = Create_Label(self.Window_Search_Or_Edit_Database,Font_Size=10,Label_text="")
         self.L_Database_Type.place(x=80,y=190,width=116,height=30)
 
-        L_Neo_Eidos=tk.Label(self.Window_Search_Or_Edit_Database)
-        ft = tkFont.Font(family='Times',size=10)
-        L_Neo_Eidos["font"] = ft
-        L_Neo_Eidos["fg"] = "#333333"
-        L_Neo_Eidos["justify"] = "center"
-        L_Neo_Eidos["text"] = "Νες Είδος :"
+        L_Neo_Eidos = Create_Label(self.Window_Search_Or_Edit_Database,Font_Size=10,Label_text="Νέο Είδος :")
         L_Neo_Eidos.place(x=10,y=230,width=70,height=25)
 
-        self.Input_New_Type=tk.Entry(self.Window_Search_Or_Edit_Database)
-        self.Input_New_Type["borderwidth"] = "1px"
-        ft = tkFont.Font(family='Times',size=11)
-        self.Input_New_Type["font"] = ft
-        self.Input_New_Type["fg"] = "#333333"
-        self.Input_New_Type["justify"] = "center"
-        self.Input_New_Type["text"] = ""
+        self.Input_New_Type = Create_Input(self.Window_Search_Or_Edit_Database,Font_Size=11)
         #self.Input_New_Type.bind("<Return>", self.Assign_New_Product_Type)
         self.Input_New_Type.place(x=100,y=230,width=100,height=20)
 
-        self.Add_New_Button=tk.Button(self.Window_Search_Or_Edit_Database)
-        self.Add_New_Button["bg"] = "#e9e9ed"
-        ft = tkFont.Font(family='Times',size=10)
-        self.Add_New_Button["font"] = ft
-        self.Add_New_Button["fg"] = "#000000"
-        self.Add_New_Button["justify"] = "center"
-        self.Add_New_Button["text"] = "Εισαγωγή"
+        self.Add_New_Button = Create_Button(self.Window_Search_Or_Edit_Database,Label_text="Εισαγωγή",Font_Size=10)
         self.Add_New_Button.place(x=210,y=230,width=80,height=30)
         self.Add_New_Button["command"] = self.Assign_New_Product_Type
         
@@ -595,9 +503,38 @@ class Window_Search_Or_Edit:
             self.Input_New_Type.delete(0,len(self.Input_New_Type.get()))
         return 0
 
+class Help_Window:
+    def __init__(self):
+        self.Window_Help = Toplevel()
+        self.Window_Help.title("Help")
+        self.Window_Help.iconbitmap(LOGO_ICON_LOCATION)
+        self.Window_Help.geometry('850x600')
+
+        # Create a self.Canvas with a vertical scrollbar
+
+        self.Canvas = Canvas(self.Window_Help, width=800, height=600)
+        scrollbar = Scrollbar(self.Window_Help, command=self.Canvas.yview)
+        frame = Frame(self.Canvas)
+
+        Create_Label(self.Canvas, Font_Size=15, Label_text="Μορφές Αρχείων").pack()
+        
+        img= ImageTk.PhotoImage(file="Example_file_1.jpg")
+        self.Canvas.create_image(10,10,anchor='center',image=img)
+
+        self.Canvas.create_window(0,0,anchor='nw',window=frame)
+        self.Canvas.update_idletasks()
+
+        self.Canvas.configure(scrollregion=self.Canvas.bbox('all'), yscrollcommand=scrollbar.set)
+                        
+        self.Canvas.pack(fill='both', expand=True, side='left')
+        scrollbar.pack(fill='y', side='right')
+
+        self.Window_Help.bind("<Control-w>",lambda e:self.Window_Help.destroy())
+        self.Canvas.bind_all("<MouseWheel>", lambda e:self.Canvas.yview_scroll(int(-1*(e.delta/120)), "units"))
+        self.Window_Help.grab_set()
 
 if __name__ == "__main__":
     root = tk.Tk()
     window = MainWindow(root)
+    Help_Window()
     root.mainloop()
-    #root.protocol("WM_DELETE_WINDOW", on_closing)
